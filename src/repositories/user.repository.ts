@@ -3,7 +3,6 @@ import { singleton, inject } from 'tsyringe';
 import { Logger } from 'winston';
 import { User, UserCreationAttributes, UserUpdateAttributes } from '../models/user.model';
 import { Database } from '../database';
-import { config } from '../config';
 
 interface InternalUserAttributes {
   id: number;
@@ -13,9 +12,7 @@ interface InternalUserAttributes {
   createdAt: Date;
   updatedAt: Date;
 }
-
 interface InternalUserCreationAttributes extends Optional<InternalUserAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
-
 export class UserModel extends Model<InternalUserAttributes, InternalUserCreationAttributes> implements InternalUserAttributes {
   public id!: number;
   public username!: string;
@@ -25,15 +22,15 @@ export class UserModel extends Model<InternalUserAttributes, InternalUserCreatio
   public updatedAt!: Date;
 }
 
-const initUserModel = (database: Database): typeof UserModel => {
-    UserModel.init(
+export const initializeUserModel = (database: Database): typeof UserModel => {
+  UserModel.init(
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
       username: { type: DataTypes.STRING, allowNull: false },
       email: { type: DataTypes.STRING, allowNull: false, unique: 'users_email_key' },
       passwordhash: { type: DataTypes.STRING, allowNull: false, field: 'passwordhash' },
-      createdAt: { type: DataTypes.DATE, allowNull: false, field: 'created_at' },
-      updatedAt: { type: DataTypes.DATE, allowNull: false, field: 'updated_at' }
+      createdAt: { type: DataTypes.DATE, field: 'created_at' },
+      updatedAt: { type: DataTypes.DATE, field: 'updated_at' }
     },
     {
       sequelize: database.sequelize,
@@ -45,10 +42,6 @@ const initUserModel = (database: Database): typeof UserModel => {
   );
   return UserModel;
 };
-
-// Initialize the model once and use it for injection
-const databaseInstance = new Database(config, logger);
-initUserModel(databaseInstance);
 
 @singleton()
 export class UserRepository {
@@ -62,21 +55,10 @@ export class UserRepository {
     return { ...json, id: json.id.toString() };
   }
 
-  private logQuery(queryDesc: string, values: any, correlationId?: string, operation?: string) {
-    this.logger.debug(`UserRepository: Executing DB operation`, {
-        correlationId,
-        operation: operation || 'UnknownUserDBOperation',
-        details: queryDesc,
-        params: config.nodeEnv !== 'production' ? values : '[values_hidden_in_prod]',
-        type: 'DBLog.UserQuery'
-    });
-  }
-
   async createUser(user: UserCreationAttributes, correlationId?: string): Promise<User> {
     const operation = 'createUser';
     this.logger.info(`UserRepository: ${operation} initiated`, { correlationId, email: user.email, type: `DBLog.${operation}` });
     try {
-      this.logQuery(`UserModel.create`, user, correlationId, operation);
       const newUser = await this.userModel.create(user);
       return this.toExternalUser(newUser);
     } catch (error: any) {

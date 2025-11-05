@@ -3,17 +3,19 @@ module.exports = {
   clearMocks: true,
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   
-  // Use ts-jest for all TypeScript files
   transform: {
     '^.+\\.tsx?$': 'ts-jest',
+    '^.+\\.jsx?$': 'babel-jest',
   },
 
-  // Enable coverage collection
+  transformIgnorePatterns: [
+    '/node_modules/(?!(express-request-id|uuid))',
+  ],
+
   collectCoverage: true,
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov'], // 'lcov' is for SonarQube
+  coverageReporters: ['text', 'lcov'],
 
-  // Configure reporters for SonarQube
   reporters: [
     'default',
     ['jest-sonar', {
@@ -25,5 +27,6 @@ module.exports = {
 
   testTimeout: 30000,
   verbose: true,
-  // forceExit has been removed. Tests must exit gracefully.
+
+  globalSetup: './jest.global-setup.js',
 };

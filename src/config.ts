@@ -2,11 +2,13 @@ import { z } from 'zod';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+const isTest = process.env.NODE_ENV === 'test';
+
 const configSchema = z.object({
   port: z.coerce.number().default(3000),
   nodeEnv: z.string().default('development'),
   logLevel: z.string().default('info'),
-  jwtSecret: z.string().min(1, 'JWT_SECRET is a required environment variable'),
+  jwtSecret: z.string().min(1),
   db: z.object({
     name: z.string().min(1),
     user: z.string().min(1),
@@ -36,14 +38,14 @@ const configSchema = z.object({
 const configValues = {
   port: process.env.PORT,
   nodeEnv: process.env.NODE_ENV,
-  logLevel: process.env.LOG_LEVEL,
-  jwtSecret: process.env.JWT_SECRET,
+  logLevel: isTest ? 'error' : process.env.LOG_LEVEL,
+  jwtSecret: isTest ? process.env.JWT_SECRET_TEST : process.env.JWT_SECRET,
   db: {
-    name: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
+    name: isTest ? process.env.DB_NAME_TEST : process.env.DB_NAME,
+    user: isTest ? process.env.DB_USER_TEST : process.env.DB_USER,
+    password: isTest ? process.env.DB_PASSWORD_TEST : process.env.DB_PASSWORD,
+    host: isTest ? process.env.DB_HOST_TEST : process.env.DB_HOST,
+    port: isTest ? process.env.DB_PORT_TEST : process.env.DB_PORT,
   },
   kafka: {
     broker: process.env.KAFKA_BROKER,

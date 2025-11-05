@@ -16,7 +16,7 @@ export const loginSchema = z.object({
 export const updateUserSchema = z.object({
   username: z.string().min(1).optional(),
   email: z.string().email().optional(),
-}).strict("Only 'username' and 'email' can be updated here.");
+}).strict();
 
 export const updateUserPasswordSchema = z.object({
   newPassword: passwordSchema,

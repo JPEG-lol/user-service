@@ -8,7 +8,7 @@ import { logger } from './utils/logger';
 import { config } from './config';
 import { getKafkaProducer, disconnectProducer, initializeKafkaProducerLogger } from './kafka/producer';
 import { Database } from './database';
-import { UserModel } from './repositories/user.repository';
+import { initializeUserModel } from './repositories/user.repository';
 
 class Server {
   public static async start(): Promise<void> {
@@ -34,7 +34,10 @@ class Server {
     container.register('Logger', { useValue: logger });
     container.register('Config', { useValue: config });
     container.register('Database', { useClass: Database });
-    container.register('UserModel', { useValue: UserModel });
+
+    const database = container.resolve(Database);
+    const userModel = initializeUserModel(database);
+    container.register('UserModel', { useValue: userModel });
   }
 
   private static async connectServices(): Promise<void> {
@@ -46,7 +49,7 @@ class Server {
     await getKafkaProducer(logger);
     logger.info('Kafka producer initialized successfully.', { type: 'StartupLog.KafkaProducerReady' });
   }
-
+  
   private static createShutdownHandler(server: import('http').Server): (signal: string) => void {
     return (signal: string) => {
       logger.info(`${signal} received. Shutting down gracefully.`, { signal, type: 'ShutdownLog.SignalReceived' });

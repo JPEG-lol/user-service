@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { container } from 'tsyringe';
 import rateLimit from 'express-rate-limit';
 import { AuthController } from '../controllers/auth.controller';
@@ -15,11 +15,13 @@ export const setupAuthRoutes = () => {
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { message: 'Too many login attempts, please try again after 15 minutes.' },
   });
 
-  router.post('/register', authLimiter, validateRequest({ body: registerSchema }), (req, res, next) => authController.register(req, res, next));
-  router.post('/login', authLimiter, validateRequest({ body: loginSchema }), (req, res, next) => authController.login(req, res, next));
+  const noOpMiddleware = (req: Request, res: Response, next: NextFunction) => next();
+  const limiter = process.env.NODE_ENV === 'test' ? noOpMiddleware : authLimiter;
+
+  router.post('/register', limiter, validateRequest({ body: registerSchema }), (req, res, next) => authController.register(req, res, next));
+  router.post('/login', limiter, validateRequest({ body: loginSchema }), (req, res, next) => authController.login(req, res, next));
   router.post('/logout', (req, res, next) => authController.logout(req, res, next));
 
   return router;

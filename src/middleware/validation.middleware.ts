@@ -1,11 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { AnyZodObject, ZodError } from 'zod';
+import { z, ZodError } from 'zod';
 import { BadRequestError } from '../utils/errors';
+import { ParamsDictionary } from 'express-serve-static-core';
+import { ParsedQs } from 'qs';
 
 interface IValidationRequest {
-  body?: AnyZodObject;
-  query?: AnyZodObject;
-  params?: AnyZodObject;
+  body?: z.Schema;
+  query?: z.Schema;
+  params?: z.Schema;
 }
 
 export const validateRequest = (schemas: IValidationRequest) => 
@@ -15,15 +17,15 @@ export const validateRequest = (schemas: IValidationRequest) =>
         req.body = await schemas.body.parseAsync(req.body);
       }
       if (schemas.query) {
-        req.query = await schemas.query.parseAsync(req.query);
+        req.query = (await schemas.query.parseAsync(req.query)) as ParsedQs;
       }
       if (schemas.params) {
-        req.params = await schemas.params.parseAsync(req.params);
+        req.params = (await schemas.params.parseAsync(req.params)) as ParamsDictionary;
       }
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const message = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        const message = error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join(', ');
         next(new BadRequestError(`Validation failed: ${message}`));
       } else {
         next(new BadRequestError('An unknown validation error occurred.'));
