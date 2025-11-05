@@ -17,13 +17,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: ${{ secrets.TEST_DB_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.TEST_DB_PASSWORD }}
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
           POSTGRES_DB: users
         ports:
           - 5432:5432 # Map to the default port for simplicity
         options: >-
-          --health-cmd="pg_isready -U $POSTGRES_USER"
+          --health-cmd="pg_isready -U postgres"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -47,8 +47,8 @@ jobs:
           # Provide the test database connection details to the test runner
           DB_HOST_TEST: localhost
           DB_PORT_TEST: 5432
-          DB_USER_TEST: $POSTGRES_USER
-          DB_PASSWORD_TEST: $POSTGRES_PASSWORD
+          DB_USER_TEST: postgres
+          DB_PASSWORD_TEST: password
           DB_NAME_TEST: users
           JWT_SECRET_TEST: a-dummy-secret-for-ci-tests
           KAFKA_BROKER: "dummy-kafka:9092"
@@ -93,14 +93,14 @@ jobs:
           context: .
           push: false # Do not push yet, just load for the scanner
           load: true
-          tags: ${{ steps.meta.outputs.tags }}-scan # Use a temporary tag for the scanner
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}-scan
           cache-from: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache,mode=max
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.meta.outputs.tags }}-scan
+          image-ref: ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}-scan
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
@@ -111,7 +111,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}-scan
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache
 
