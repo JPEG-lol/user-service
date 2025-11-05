@@ -17,13 +17,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
+          POSTGRES_USER: ${{ secrets.TEST_DB_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.TEST_DB_PASSWORD }}
           POSTGRES_DB: users
         ports:
           - 5432:5432 # Map to the default port for simplicity
         options: >-
-          --health-cmd="pg_isready -U postgres"
+          --health-cmd="pg_isready -U $POSTGRES_USER"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -35,7 +35,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Use a current LTS version
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -47,9 +47,15 @@ jobs:
           # Provide the test database connection details to the test runner
           DB_HOST_TEST: localhost
           DB_PORT_TEST: 5432
-          DB_USER_TEST: postgres
-          DB_PASSWORD_TEST: password
+          DB_USER_TEST: $POSTGRES_USER
+          DB_PASSWORD_TEST: $POSTGRES_PASSWORD
           DB_NAME_TEST: users
+          JWT_SECRET_TEST: a-dummy-secret-for-ci-tests
+          KAFKA_BROKER: "dummy-kafka:9092"
+          KAFKA_CLIENT_ID_USER: "user-service-test"
+          USER_LIFECYCLE_TOPIC: "user-lifecycle-test"
+          STREAM_API_KEY: "dummy-stream-key"
+          STREAM_PRIVATE_API_KEY: "dummy-stream-secret"
 
   # Job 2: Build, scan, and push the Docker image if tests pass
   build-and-push:
